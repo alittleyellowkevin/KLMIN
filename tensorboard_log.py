@@ -12,15 +12,15 @@ class Logger(object):
 
         exp = 0
         if data["LAI"]:
-            experience = './logs/' + data['dataset'] + '/' + data['model_arch'] + '_LAI_' + data['mining'] + '/' + str(exp)
+            experience = 'logs/' + data['dataset'] + '/' + data['model_arch'] + '_LAI_' + data['mining'] + '/' + str(exp)
         else:
-            experience = './logs/' + data['dataset'] + '/' + data['model_arch'] + '_' + data['mining'] + str(exp)
+            experience = 'logs/' + data['dataset'] + '/' + data['model_arch'] + '_' + data['mining'] + str(exp)
         while os.path.isdir(experience) == True:
             exp += 1
             if data["LAI"]:
-                experience = './logs/' + data['dataset'] + '/' + data['model_arch'] + '_LAI_' + data['mining'] + str(exp)
+                experience = 'logs/' + data['dataset'] + '/' + data['model_arch'] + '_LAI_' + data['mining'] + str(exp)
             else:
-                experience = './logs/' + data['dataset'] + '/' + data['model_arch'] + '-' + data['mining']+'/' + str(exp)
+                experience = 'logs/' + data['dataset'] + '/' + data['model_arch'] + '-' + data['mining']+'/' + str(exp)
         self.logscalars = defaultdict(list)
         self.writer = SummaryWriter(experience)
         self.save_embed = save_embed
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     import torch
     import torchvision
 
-    with open("./config/config.yaml", "r") as stream:
+    with open("./config/config_Veri776.yaml", "r") as stream:
         print('debug')
         data = yaml.safe_load(stream)
     loggerwriter = Logger(data)
@@ -84,6 +84,6 @@ if __name__ == "__main__":
     loggerwriter.write_scalars(dicttest, 6)
     loggerwriter.write_scalars({"Accuraccy/CMC1": int(101), "Accuraccy/mAP": 109}, 6)
     model = torchvision.models.resnet18(pretrained=False)
-    loggerwriter.save_model(model, 'test.pt')
+    loggerwriter.save_model(model)
 
     loggerwriter.save_log()

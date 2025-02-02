@@ -680,9 +680,9 @@ class FinalLayer(nn.Module):
         return preds, embs, ffs
 
     
-class MBR_model(nn.Module):         
-    def __init__(self, class_num, n_branches, losses="LBS", backbone="ibn", droprate=0, linear_num=False, return_f = True, circle_softmax=False, LAI=False, n_cams=0, n_views=0):
-        super(MBR_model, self).__init__()
+class KLMIN_model(nn.Module):
+    def __init__(self, class_num, n_branches, losses="LBS", backbone="ce", droprate=0, linear_num=False, return_f = True, circle_softmax=False, LAI=False, n_cams=0, n_views=0):
+        super(KLMIN_model, self).__init__()
         self.modelup2L3 = base_branches(backbone=backbone)
         self.modelL4 = multi_branches(n_branches=n_branches)
         self.finalblock = FinalLayer(class_num=class_num, n_branches=n_branches, losses=losses, droprate=droprate, linear_num=linear_num, return_f=return_f, circle_softmax=circle_softmax, LAI=LAI, n_cams=n_cams, n_views=n_views)
@@ -698,17 +698,10 @@ class MBR_model(nn.Module):
 
 
 if __name__ == "__main__":
-    input = torch.randn((48,3,256,256))
-
-    model = MBhuangR_model(class_num=576, n_branches=["R50", "R50", "BoT", "BoT"],
-                      losses=["tri", "ce", "tri", "ce"], LAI=True, n_cams=20,
-                      n_views=8)
-
+    model = KLMIN_model(575, n_branches=["se-bot", "se-bot"], losses=["ce", "ce", "tri", "tri"], LAI=True, n_cams=20,
+                        n_views=8)
     print(model)
-    flops = FlopCountAnalysis(model, (input, torch.randint(0,19,(48,1)), torch.randint(0,7,(48,1))))
-    preds, embs, ffs, output = model(input, torch.randint(0,19,(48,1)), torch.randint(0,7,(48,1)))
-    print(f"Total FLOPs: {flops.total()}")
-    print("\nn_preds: ", len(preds))
-    print("n_embs: ", len(embs))
-    print("ffs: ", len(ffs))
+    print(count_parameters(model))
+
+
 

@@ -13,9 +13,11 @@ import torch.multiprocessing
 import os
 import yaml
 from utils import re_ranking
+from collections import OrderedDict
 
 
-# import cv2
+
+import cv2
 
 
 def normalize_batch(batch, maximo=None, minimo=None):
@@ -38,59 +40,62 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 
-def count_parameters(model): return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 ### Save activations may be not working properly after changing the code
-# def save_activ(activations, count_imgs, data, transform, path_names, blend_ratio, q_or_g=""):
-#             cnt = 0
-#             for item in activations:
-#                 if item.ndim == 4:
-#                     mapactiv = item.sum(dim=1) 
-#                     mapactiv = normalize_batch(mapactiv, None, None) 
-#                     mapactiv = transform(mapactiv).cpu().numpy()                    
-#                     for i in range(mapactiv.shape[0]):
-#                         if data['dataset'] == 'VERIWILD':
-#                             path2img = data['ROOT_DIR'] + path_names[count_imgs + i, 0]
-#                             outputDIR = args.path_weights + '/activations'+q_or_g+'/'
-#                             if not os.path.exists(outputDIR): os.mkdir(outputDIR)
-#                         else:
-#                             path2img = data['teste_dir'] + str(path_names[count_imgs + i])
-#                             outputDIR = args.path_weights + '/activations'+q_or_g+'/'
-#                             if not os.path.exists(outputDIR): os.mkdir(outputDIR)
-#                         img_og = cv2.resize(cv2.imread(path2img), (256,256), interpolation= cv2.INTER_LINEAR)
-#                         if cnt == 0:            
-#                             activ = cv2.applyColorMap(np.uint8(mapactiv[i,:,:]* 255), cv2.COLORMAP_JET)
-#                             activ = np.uint8(img_og * blend_ratio + activ[:,:,:3] *(1-blend_ratio))
-#                             if not os.path.exists(outputDIR + 'cross_entropy_branch/'): os.mkdir(outputDIR + 'cross_entropy_branch/')
-#                             cv2.imwrite(outputDIR + 'cross_entropy_branch/' +str(count_imgs + i) + '.jpg', activ)
-#                         if cnt == 1:            
-#                             activ = cv2.applyColorMap(np.uint8(mapactiv[i,:,:]* 255), cv2.COLORMAP_JET)
-#                             activ = np.uint8(img_og * blend_ratio + activ[:,:,:3] *(1-blend_ratio))
-#                             if not os.path.exists(outputDIR + 'triplet_branch/'): os.mkdir(outputDIR + 'triplet_branch/')
-#                             cv2.imwrite(outputDIR + 'triplet_branch/' +str(count_imgs + i) + '.jpg', activ)
-#                         if cnt == 2:            
-#                             activ = cv2.applyColorMap(np.uint8(mapactiv[i,:,:]* 255), cv2.COLORMAP_JET)
-#                             activ = np.uint8(img_og * blend_ratio + activ[:,:,:3] *(1-blend_ratio))
-#                             if not os.path.exists(outputDIR + 'mhsa_ce_branch/'): os.mkdir(outputDIR + 'mhsa_ce_branch/')
-#                             cv2.imwrite(outputDIR + 'mhsa_ce_branch/' +str(count_imgs + i) + '.jpg', activ)
-#                         if cnt == 3:            
-#                             activ = cv2.applyColorMap(np.uint8(mapactiv[i,:,:]* 255), cv2.COLORMAP_JET)
-#                             activ = np.uint8(img_og * blend_ratio + activ[:,:,:3] *(1-blend_ratio))
-#                             if not os.path.exists(outputDIR + 'mhsa_t_branch/'): os.mkdir(outputDIR + 'mhsa_t_branch/')
-#                             cv2.imwrite(outputDIR + 'mhsa_t_branch/' +str(count_imgs + i) + '.jpg', activ)
-#                     cnt += 1
+def save_activ(activations, count_imgs, data, transform, path_names, blend_ratio, q_or_g=""):
+            cnt = 0
+            for item in activations:
+                if item.ndim == 4:
+                    mapactiv = item.sum(dim=1)
+                    mapactiv = normalize_batch(mapactiv, None, None)
+                    mapactiv = transform(mapactiv).cpu().numpy()
+                    for i in range(mapactiv.shape[0]):
+                        if data['dataset'] == 'VERIWILD':
+                            path2img = data['ROOT_DIR'] + path_names[count_imgs + i, 0]
+                            outputDIR = data['ROOT_DIR'] + '/activations'+q_or_g+'/'
+                            if not os.path.exists(outputDIR): os.mkdir(outputDIR)
+                        else:
+                            path2img = data['teste_dir'] + str(path_names[count_imgs + i])
+                            outputDIR = data['ROOT_DIR'] + '/activations/2/'
+                            if not os.path.exists(outputDIR): os.mkdir(outputDIR)
+                        img_og = cv2.resize(cv2.imread(path2img), (256,256), interpolation= cv2.INTER_LINEAR)
+                        if cnt == 0:
+                            activ = cv2.applyColorMap(np.uint8(mapactiv[i,:,:]* 255), cv2.COLORMAP_JET)
+                            activ = np.uint8(img_og * blend_ratio + activ[:,:,:3] *(1-blend_ratio))
+                            if not os.path.exists(outputDIR + 'cross_entropy_branch/'): os.mkdir(outputDIR + 'cross_entropy_branch/')
+                            cv2.imwrite(outputDIR + 'cross_entropy_branch/' +str(count_imgs + i) + '.jpg', activ)
+                        if cnt == 1:
+                            activ = cv2.applyColorMap(np.uint8(mapactiv[i,:,:]* 255), cv2.COLORMAP_JET)
+                            activ = np.uint8(img_og * blend_ratio + activ[:,:,:3] *(1-blend_ratio))
+                            if not os.path.exists(outputDIR + 'triplet_branch/'): os.mkdir(outputDIR + 'triplet_branch/')
+                            cv2.imwrite(outputDIR + 'triplet_branch/' +str(count_imgs + i) + '.jpg', activ)
+                        if cnt == 2:
+                            activ = cv2.applyColorMap(np.uint8(mapactiv[i,:,:]* 255), cv2.COLORMAP_JET)
+                            activ = np.uint8(img_og * blend_ratio + activ[:,:,:3] *(1-blend_ratio))
+                            if not os.path.exists(outputDIR + 'mhsa_ce_branch/'): os.mkdir(outputDIR + 'mhsa_ce_branch/')
+                            cv2.imwrite(outputDIR + 'mhsa_ce_branch/' +str(count_imgs + i) + '.jpg', activ)
+                        if cnt == 3:
+                            activ = cv2.applyColorMap(np.uint8(mapactiv[i,:,:]* 255), cv2.COLORMAP_JET)
+                            activ = np.uint8(img_og * blend_ratio + activ[:,:,:3] *(1-blend_ratio))
+                            if not os.path.exists(outputDIR + 'mhsa_t_branch/'): os.mkdir(outputDIR + 'mhsa_t_branch/')
+                            cv2.imwrite(outputDIR + 'mhsa_t_branch/' +str(count_imgs + i) + '.jpg', activ)
+                    cnt += 1
 
 def test_epoch(model, device, dataloader_q, dataloader_g, model_arch, remove_junk=True, scaler=None, re_rank=False):
     model.eval()
     re_escala = torchvision.transforms.Resize((256, 256), antialias=True)
 
-    # if data['dataset'] == 'VERIWILD':
-    #     queries_names = np.loadtxt('/home/eurico/VERI-Wild/train_test_split/test_3000_id_query.txt', dtype='str_')
-    #     galeria_names = np.loadtxt('/home/eurico/VERI-Wild/train_test_split/test_3000_id.txt', dtype='str_')
-    # else:
-    #     queries_names = np.loadtxt(data['query_list_file'], dtype='str_')
-    #     galeria_names = np.loadtxt(data['gallery_list_file'], dtype='str_')
+
+    ### 加载图片信息
+    if data['dataset'] == 'VERIWILD':
+        queries_names = np.loadtxt('/home/eurico/VERI-Wild/train_test_split/test_3000_id_query.txt', dtype='str_')
+        galeria_names = np.loadtxt('/home/eurico/VERI-Wild/train_test_split/test_3000_id.txt', dtype='str_')
+    else:
+        queries_names = np.loadtxt(data['query_list_file'], dtype='str_')
+        galeria_names = np.loadtxt(data['gallery_list_file'], dtype='str_')
+
+
     ###needed lists
     qf = []
     gf = []
@@ -101,7 +106,7 @@ def test_epoch(model, device, dataloader_q, dataloader_g, model_arch, remove_jun
     q_images = []
     g_images = []
     count_imgs = 0
-    blend_ratio = 0.3
+    blend_ratio = 0.6
     with torch.no_grad():
         for image, q_id, cam_id, view_id in tqdm(dataloader_q, desc='Query infer (%)',
                                                  bar_format='{l_bar}{bar:20}{r_bar}'):
@@ -112,8 +117,8 @@ def test_epoch(model, device, dataloader_q, dataloader_g, model_arch, remove_jun
             else:
                 _, _, ffs, activations = model(image, cam_id, view_id)
 
-            # if not data['dataset'] == "VehicleID":
-            #     save_activ(activations, count_imgs, data, re_escala, queries_names, blend_ratio)
+            if not data['dataset'] == "VehicleID":
+                save_activ(activations, count_imgs, data, re_escala, queries_names, blend_ratio)
 
             count_imgs += activations[0].shape[0]
             end_vec = []
@@ -134,8 +139,8 @@ def test_epoch(model, device, dataloader_q, dataloader_g, model_arch, remove_jun
             else:
                 _, _, ffs, activations = model(image, cam_id, view_id)
 
-            # if not data['dataset'] == "VehicleID":
-            #     save_activ(activations, count_imgs, data, re_escala, galeria_names, blend_ratio, "_g")
+            if not data['dataset'] == "VehicleID":
+                save_activ(activations, count_imgs, data, re_escala, galeria_names, blend_ratio, "_g")
 
             end_vec = []
             for item in ffs:
@@ -151,10 +156,10 @@ def test_epoch(model, device, dataloader_q, dataloader_g, model_arch, remove_jun
     qf = torch.cat(qf, dim=0)
     gf = torch.cat(gf, dim=0)
 
-    # with open(args.path_weights +'q_feats.npy', 'wb') as f:
-    #     np.save(f, qf.cpu().numpy())
-    # with open(args.path_weights +'g_feats.npy', 'wb') as f:
-    #     np.save(f, gf.cpu().numpy())
+    with open(args.path_weights +'q_feats.npy', 'wb') as f:
+        np.save(f, qf.cpu().numpy())
+    with open(args.path_weights +'g_feats.npy', 'wb') as f:
+        np.save(f, gf.cpu().numpy())
 
     m, n = qf.shape[0], gf.shape[0]
     if re_rank:
@@ -176,7 +181,7 @@ def test_epoch(model, device, dataloader_q, dataloader_g, model_arch, remove_jun
     #     np.save(f, q_view_id)
     # with open(args.path_weights +'g_view.npy', 'wb') as f:
     #     np.save(f, g_view_id)
-    del qf, gf
+    # del qf, gf
 
     cmc, mAP = eval_func(distmat, q_vids, g_vids, q_camids, g_camids, remove_junk=remove_junk)
     print(f'mAP = {mAP},  CMC1= {cmc[0]}, CMC5= {cmc[4]}')
@@ -197,7 +202,7 @@ if __name__ == "__main__":
     parser.add_argument('--re_rank', action="store_true", help="Re-Rank")
     args = parser.parse_args()
 
-    with open(args.path_weights + "config.yaml", "r") as stream:
+    with open(r"D:\Projects\KLMIN\config\config_Veri776.yaml", "r") as stream:
         data = yaml.safe_load(stream)
 
     data['BATCH_SIZE'] = args.batch_size or data['BATCH_SIZE']
@@ -254,15 +259,9 @@ if __name__ == "__main__":
     model = get_model(data, torch.device("cpu"))
 
     # One of the saved weights last.pt best_CMC.pt best_mAP.pt
-    path_weights = args.path_weights + 'best_mAP.pt'
+    path_weights = r"D:\Projects\KLMIN\logs\Veri776\4B_LAI\5\best_mAP.pt"
 
-    try:
-        model.load_state_dict(torch.load(path_weights, map_location='cpu'))
-    except RuntimeError:
-        ### nn.Parallel adds "module." to the dict names. Although like said nn.Parallel can incur in weird results in some cases
-        tmp = torch.load(path_weights, map_location='cpu')
-        tmp = OrderedDict((k.replace("module.", ""), v) for k, v in tmp.items())
-        model.load_state_dict(tmp)
+    model.load_state_dict(torch.load(path_weights, map_location='cpu'))
 
     model = model.to(device)
     model.eval()

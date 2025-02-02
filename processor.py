@@ -1,7 +1,7 @@
 from turtle import update
 import torch
 import torch.nn.functional as F
-from models.models import MBR_model
+from models.models import KLMIN_model
 from tqdm import tqdm
 import numpy as np
 from metrics.eval_reid import eval_func
@@ -17,48 +17,48 @@ def count_parameters(model): return sum(p.numel() for p in model.parameters() if
 
 def get_model(data, device):
     if data['model_arch'] == '1B':
-        model = MBR_model(class_num=data['n_classes'], n_branches=["R50"],
+        model = KLMIN_model(class_num=data['n_classes'], n_branches=["R50"],
                           losses=["ce+tri"], LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
     if data['model_arch'] == 'se1B':
-        model = MBR_model(class_num=data['n_classes'], n_branches=["SE"],
+        model = KLMIN_model(class_num=data['n_classes'], n_branches=["SE"],
                           losses=["ce+tri"], LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
     if data['model_arch'] == 'bot1B':
-        model = MBR_model(class_num=data['n_classes'], n_branches=["BoT"],
+        model = KLMIN_model(class_num=data['n_classes'], n_branches=["BoT"],
                           losses=["ce+tri"], LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
     if data['model_arch'] == '2B':
-        model = MBR_model(class_num=data['n_classes'], n_branches=["R50", "BoT"],
+        model = KLMIN_model(class_num=data['n_classes'], n_branches=["R50", "BoT"],
                           losses=["ce+tri", "ce+tri"], LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == 'se2B':
-        model = MBR_model(class_num=data['n_classes'], n_branches=["SE", "BoT"],
+        model = KLMIN_model(class_num=data['n_classes'], n_branches=["SE", "BoT"],
                           losses=["ce+tri", "ce+tri"], LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == 'ff2B':
-        model = MBR_model(class_num=data['n_classes'], n_branches=["SE-BoT"], losses=["ce+tri", "ce+tri"],
+        model = KLMIN_model(class_num=data['n_classes'], n_branches=["SE-BoT"], losses=["ce+tri", "ce+tri"],
                          LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == '4B':
-        model = MBR_model(class_num=data['n_classes'], n_branches=["R50", "R50", "BoT", "BoT"],
+        model = KLMIN_model(class_num=data['n_classes'], n_branches=["R50", "R50", "BoT", "BoT"],
                           losses=["ce", "tri", "ce", "tri"], LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == 'se4B':
-        model = MBR_model(class_num=data['n_classes'], n_branches=["SE", "BoT", "SE", "BoT"], losses=["ce", "ce", "tri", "tri"],
+        model = KLMIN_model(class_num=data['n_classes'], n_branches=["SE", "BoT", "SE", "BoT"], losses=["ce", "ce", "tri", "tri"],
                         LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == 'ff4B':
-        model = MBR_model(class_num=data['n_classes'], n_branches=["se-bot", "se-bot"], losses=["ce", "ce", "tri", "tri"],
+        model = KLMIN_model(class_num=data['n_classes'], n_branches=["se-bot", "se-bot"], losses=["ce", "ce", "tri", "tri"],
                          LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == '6B':
-        model = MBR_model(class_num=data['n_classes'], n_branches=["R50", "BoT", "R50","BoT", "R50", "BoT"],
+        model = KLMIN_model(class_num=data['n_classes'], n_branches=["R50", "BoT", "R50","BoT", "R50", "BoT"],
                           losses=["ce+tri", "ce+tri", "ce", "ce", "tri", "tri"],LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == 'se6B':
-        model = MBR_model(class_num=data['n_classes'], n_branches=["SE", "BoT", "SE", "BoT", "SE", "BoT"], losses=["ce+tri","ce+tri", "ce", "ce", "tri", "tri"],
+        model = KLMIN_model(class_num=data['n_classes'], n_branches=["SE", "BoT", "SE", "BoT", "SE", "BoT"], losses=["ce+tri","ce+tri", "ce", "ce", "tri", "tri"],
                            LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == 'ff6B':
-        model = MBR_model(class_num=data['n_classes'], n_branches=["SE-BoT", "SE-BoT", "SE-BoT"], losses=["ce+tri","ce+tri", "ce", "ce", "tri", "tri"],
+        model = KLMIN_model(class_num=data['n_classes'], n_branches=["SE-BoT", "SE-BoT", "SE-BoT"], losses=["ce+tri","ce+tri", "ce", "ce", "tri", "tri"],
                            LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
 
@@ -67,9 +67,9 @@ def get_model(data, device):
     return model.to(device)
 
 if __name__ == "__main__":
-    model = MBR_model(575, n_branches=["BoT"], losses=["ce+tri"], LAI=True, n_cams=20, n_views=8)
+    model = KLMIN_model(575, n_branches=["se-bot", "se-bot"], losses=["ce", "ce", "tri", "tri"], LAI=True, n_cams=20, n_views=8)
     print(model)
-    print(count_parameters(model)/1024/1024)
+    print(count_parameters(model))
 
 def train_epoch(model, device, dataloader, loss_fn, triplet_loss, optimizer, data, logger, epoch,
                 scheduler=None, scaler=False):
