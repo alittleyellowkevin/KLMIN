@@ -11,16 +11,22 @@ class Logger(object):
     def __init__(self, data, logscalars=True, save_embed=True):
 
         exp = 0
+        # Assuming data contains necessary fields like dataset, model_arch, loss_function, etc.
+        base_path = os.path.join('D:', 'Projects', 'KLMIN', 'logs', data['dataset'], data['model_arch'])
+
         if data["LAI"]:
-            experience = 'logs/' + data['dataset'] + '/' + data['model_arch'] + '_LAI_' + data['mining'] + '/' + str(exp)
+            experience = os.path.join(base_path, f"{data['model_arch']}_LAI_{data['loss_function']}", str(exp))
         else:
-            experience = 'logs/' + data['dataset'] + '/' + data['model_arch'] + '_' + data['mining'] + str(exp)
-        while os.path.isdir(experience) == True:
+            experience = os.path.join(base_path, f"{data['model_arch']}_{data['loss_function']}", str(exp))
+
+        while os.path.isdir(experience):
             exp += 1
             if data["LAI"]:
-                experience = 'logs/' + data['dataset'] + '/' + data['model_arch'] + '_LAI_' + data['mining'] + str(exp)
+                experience = os.path.join('D:', 'Projects', 'KLMIN', 'logs', data['dataset'], data['model_arch'],
+                                          f"{data['model_arch']}_LAI_{data['loss_function']}", str(exp))
             else:
-                experience = 'logs/' + data['dataset'] + '/' + data['model_arch'] + '-' + data['mining']+'/' + str(exp)
+                experience = os.path.join('D:', 'Projects', 'KLMIN', 'logs', data['dataset'], data['model_arch'],
+                                          f"{data['model_arch']}_{data['loss_function']}", str(exp))
         self.logscalars = defaultdict(list)
         self.writer = SummaryWriter(experience)
         self.save_embed = save_embed

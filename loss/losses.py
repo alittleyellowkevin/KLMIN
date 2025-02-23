@@ -151,48 +151,125 @@ def euclidean_dist_fast_reid(x, y):
     dist = dist.clamp(min=1e-12).sqrt()  # for numerical stability
     return dist
 
+class InstanceLoss(nn.Module):
+    def __init__(self, margin=0.1):
+        super(InstanceLoss, self).__init__()
+        self.margin = margin  # margin 可以用来控制同类样本之间的最小距离
 
-class triplet_loss_fastreid(nn.Module):
+    def forward(self, embeddings, labels):
+        """
+        :param embeddings: 模型输出的嵌入特征 (N, D)
+        :param labels: 样本标签 (N,)
+        :return: 返回的 Instance Loss
+        """
+        N = embeddings.size(0)
+        loss = 0.0
+
+        for i in range(N):
+            for j in range(N):
+                if labels[i] == labels[j]:  # 如果是同类样本
+                    # 计算同类样本之间的距离，并最小化它
+                    dist = F.pairwise_distance(embeddings[i:i+1], embeddings[j:j+1], p=2)
+                    loss += dist
+
+        loss = loss / (N * (N - 1))  # 计算平均损失
+        return loss
+
+class CircleLoss(torch.nn.Module):
+    def __init__(self, margin=0.35, scale=64.0):
+        super(CircleLoss, self).__init__()
+        self.margin = margin
+        self.scale = scale
+
+    def forward(self, embeddings, labels):
+        # Calculate pairwise cosine similarity
+        similarity_matrix = F.cosine_similarity(embeddings.unsqueeze(1), embeddings.unsqueeze(0), dim=2)
+
+        # Create label mask: positive samples where labels match
+        labels = labels.unsqueeze(1)
+        positive_mask = labels == labels.T
+
+        # Calculate positive and negative distances
+        positive_similarity = similarity_matrix * positive_mask.float()
+        negative_similarity = similarity_matrix * (1 - positive_mask.float())
+
+        # Margin-based loss computation
+        loss = torch.log(1 + torch.exp(-self.scale * (positive_similarity - negative_similarity - self.margin)))
+        loss = loss.mean()
+        return loss
+
+
+class ContrastiveLoss(torch.nn.Module):
+    def __init__(self, margin=0.2, scale=64.0):
+        super(ContrastiveLoss, self).__init__()
+        self.margin = margin
+        self.scale = scale
+
+    def forward(self, embedding, targets):
+        # 计算样本对之间的欧式距离
+        dist_mat = euclidean_dist_fast_reid(embedding, embedding)
+
+        # 获取样本数量
+        N = dist_mat.size(0)
+
+        # 判断正样本对
+        is_pos = targets.view(N, 1).expand(N, N).eq(targets.view(N, 1).expand(N, N).t()).float()
+        # 判断负样本对
+        is_neg = targets.view(N, 1).expand(N, N).ne(targets.view(N, 1).expand(N, N).t()).float()
+
+        # 对于正样本对 (y=1), 计算 d^2
+        pos_loss = is_pos * torch.pow(dist_mat, 2) * self.scale
+
+        # 对于负样本对 (y=0), 计算 max(0, margin - d)^2
+        neg_loss = is_neg * torch.pow(torch.clamp(self.margin - dist_mat, min=0.0), 2) * self.scale
+
+        # 总损失
+        loss = torch.mean(pos_loss + neg_loss) / 2.0
+
+        return loss
+
+class metric_loss_function(nn.Module):
     r"""Modified from Tong Xiao's open-reid (https://github.com/Cysu/open-reid).
     Related Triplet Loss theory can be found in paper 'In Defense of the Triplet
     Loss for Person Re-Identification'."""
-    def __init__(self, margin, norm_feat, mining) -> None:
+    def __init__(self, data, margin, norm_feat, loss_function) -> None:
         super().__init__()
         self.margin = margin
         self.norm_feat=norm_feat
-        self.mining = mining
+        self.loss_function = loss_function
+        self.circle_loss = CircleLoss(data['margin_circle'], data['scale_circle'])
+        self.contrastive_loss = ContrastiveLoss(data['margin_constrastive'], data['scale_constrast'])
+        self.instance_loss = InstanceLoss(data['margin_instance'])
 
-    def forward(self, embedding, targets, epoch):
+    def forward(self, embedding, targets):
         if self.norm_feat:
             dist_mat = euclidean_dist_fast_reid(F.normalize(embedding), F.normalize(embedding))
             # dist_mat = torch.matmul(F.normalize(embedding), F.normalize(embedding).T)
         else:
             dist_mat = euclidean_dist_fast_reid(embedding, embedding)
 
-        # For distributed training, gather all features from different process.
-        # if comm.get_world_size() > 1:
-        #     all_embedding = torch.cat(GatherLayer.apply(embedding), dim=0)
-        #     all_targets = concat_all_gather(targets)
-        # else:
-        #     all_embedding = embedding
-        #     all_targets = targets
-
         N = dist_mat.size(0)
         is_pos = targets.view(N, 1).expand(N, N).eq(targets.view(N, 1).expand(N, N).t()).float()
         is_neg = targets.view(N, 1).expand(N, N).ne(targets.view(N, 1).expand(N, N).t()).float()
 
-        if self.mining == "hard_mining":
+        if self.loss_function == "hard_mining":
             dist_ap, dist_an = hard_example_mining_fastreid(dist_mat, is_pos, is_neg)
-        elif self.mining == "konwledge_mining":
+        elif self.loss_function == "konwledge_mining":
             dist_ap, dist_an = acknowledge_example_mining(dist_mat, is_pos, is_neg)
-        elif self.mining == "easy_positive":
+        elif self.loss_function == "easy_positive":
             dist_ap, dist_an = easy_postive_mining(dist_mat, is_pos, is_neg)
-        elif self.mining == "semi_hard_positive":
+        elif self.loss_function == "semi_hard_positive":
             dist_ap, dist_an = semi_hard_positive_mining(dist_mat, is_pos, is_neg, self.margin)
-        elif self.mining == "easy_negative":
+        elif self.loss_function == "easy_negative":
             dist_ap, dist_an = easy_negative_mining(dist_mat, is_pos, is_neg, self.margin)
-        elif self.mining == "semi_hard_negative":
+        elif self.loss_function == "semi_hard_negative":
             dist_ap, dist_an = semi_hard_negtive_mining(dist_mat, is_pos, is_neg, self.margin)
+        elif self.loss_function == "circle_loss":
+            return self.circle_loss(embedding, targets)
+        elif self.loss_function == "contrastive_loss":
+            return self.contrastive_loss(embedding, targets)
+        elif self.loss_function == 'instance_loss':
+            return self.instance_loss(embedding, targets)
         else:
             dist_ap, dist_an = weighted_example_mining(dist_mat, is_pos, is_neg)
 
@@ -200,7 +277,6 @@ class triplet_loss_fastreid(nn.Module):
 
         if self.margin:
             loss = F.margin_ranking_loss(dist_an, dist_ap, y, margin=self.margin)
-            print(loss)
         else:
             loss = F.soft_margin_loss(dist_an - dist_ap, y)
             # fmt: off

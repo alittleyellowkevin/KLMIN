@@ -17,52 +17,49 @@ def count_parameters(model): return sum(p.numel() for p in model.parameters() if
 
 def get_model(data, device):
     if data['model_arch'] == '1B':
-        model = KLMIN_model(class_num=data['n_classes'], n_branches=["R50"],
+        model = KLMIN_model(class_num=data['n_classes'], backbone='50ibn', n_branches=["R50"],
                           losses=["ce+tri"], LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
     if data['model_arch'] == 'se1B':
-        model = KLMIN_model(class_num=data['n_classes'], n_branches=["SE"],
+        model = KLMIN_model(class_num=data['n_classes'], backbone='50ibn', n_branches=["SE"],
                           losses=["ce+tri"], LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
     if data['model_arch'] == 'bot1B':
-        model = KLMIN_model(class_num=data['n_classes'], n_branches=["BoT"],
+        model = KLMIN_model(class_num=data['n_classes'], backbone='50ibn', n_branches=["BoT"],
                           losses=["ce+tri"], LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
     if data['model_arch'] == '2B':
-        model = KLMIN_model(class_num=data['n_classes'], n_branches=["R50", "BoT"],
+        model = KLMIN_model(class_num=data['n_classes'], backbone='50ibn', n_branches=["R50", "BoT"],
                           losses=["ce+tri", "ce+tri"], LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == 'se2B':
-        model = KLMIN_model(class_num=data['n_classes'], n_branches=["SE", "BoT"],
+        model = KLMIN_model(class_num=data['n_classes'], backbone='50ibn', n_branches=["SE", "BoT"],
                           losses=["ce+tri", "ce+tri"], LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == 'ff2B':
-        model = KLMIN_model(class_num=data['n_classes'], n_branches=["SE-BoT"], losses=["ce+tri", "ce+tri"],
+        model = KLMIN_model(class_num=data['n_classes'], backbone='50ibn', n_branches=["SE-BoT"], losses=["ce+tri", "ce+tri"],
                          LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == '4B':
-        model = KLMIN_model(class_num=data['n_classes'], n_branches=["R50", "R50", "BoT", "BoT"],
+        model = KLMIN_model(class_num=data['n_classes'], backbone='50ibn', n_branches=["R50", "R50", "BoT", "BoT"],
                           losses=["ce", "tri", "ce", "tri"], LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == 'se4B':
-        model = KLMIN_model(class_num=data['n_classes'], n_branches=["SE", "BoT", "SE", "BoT"], losses=["ce", "ce", "tri", "tri"],
+        model = KLMIN_model(class_num=data['n_classes'], backbone='50ibn', n_branches=["SE", "BoT", "SE", "BoT"], losses=["ce", "ce", "tri", "tri"],
                         LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == 'ff4B':
-        model = KLMIN_model(class_num=data['n_classes'], n_branches=["se-bot", "se-bot"], losses=["ce", "ce", "tri", "tri"],
+        model = KLMIN_model(class_num=data['n_classes'], backbone='50ibn', n_branches=["se-bot", "se-bot"], losses=["ce", "ce", "tri", "tri"],
                          LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == '6B':
-        model = KLMIN_model(class_num=data['n_classes'], n_branches=["R50", "BoT", "R50","BoT", "R50", "BoT"],
+        model = KLMIN_model(class_num=data['n_classes'], backbone='50ibn',n_branches=["R50", "BoT", "R50","BoT", "R50", "BoT"],
                           losses=["ce+tri", "ce+tri", "ce", "ce", "tri", "tri"],LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == 'se6B':
-        model = KLMIN_model(class_num=data['n_classes'], n_branches=["SE", "BoT", "SE", "BoT", "SE", "BoT"], losses=["ce+tri","ce+tri", "ce", "ce", "tri", "tri"],
+        model = KLMIN_model(class_num=data['n_classes'], backbone='50ibn',n_branches=["SE", "BoT", "SE", "BoT", "SE", "BoT"], losses=["ce+tri","ce+tri", "ce", "ce", "tri", "tri"],
                            LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
 
     if data['model_arch'] == 'ff6B':
-        model = KLMIN_model(class_num=data['n_classes'], n_branches=["SE-BoT", "SE-BoT", "SE-BoT"], losses=["ce+tri","ce+tri", "ce", "ce", "tri", "tri"],
+        model = KLMIN_model(class_num=data['n_classes'], backbone='50ibn', n_branches=["SE-BoT", "SE-BoT", "SE-BoT"], losses=["ce+tri","ce+tri", "ce", "ce", "tri", "tri"],
                            LAI=data['LAI'], n_cams=data['n_cams'], n_views=data['n_views'])
-
-
-
 
     return model.to(device)
 
@@ -71,7 +68,7 @@ if __name__ == "__main__":
     print(model)
     print(count_parameters(model))
 
-def train_epoch(model, device, dataloader, loss_fn, triplet_loss, optimizer, data, logger, epoch,
+def train_epoch(model, device, dataloader, loss_fn, metric_loss, optimizer, data, logger, epoch,
                 scheduler=None, scaler=False):
     # Set train mode for both the encoder and the decoder
     model.train()
@@ -110,7 +107,7 @@ def train_epoch(model, device, dataloader, loss_fn, triplet_loss, optimizer, dat
                 for i, item in enumerate(preds):
                     loss_ce += ce_loss[i] * loss_fn(item, label)
                 for i, item in enumerate(embs):
-                    loss_t += tri_loss[i] * triplet_loss(item, label, epoch)
+                    loss_t += tri_loss[i] * metric_loss(item, label)
 
                 if data['mean_losses']:
                     loss = loss_ce / len(preds) + loss_t / len(embs)
@@ -128,7 +125,7 @@ def train_epoch(model, device, dataloader, loss_fn, triplet_loss, optimizer, dat
             for i, item in enumerate(preds):
                 loss_ce += ce_loss[i] * loss_fn(item, label)
             for i, item in enumerate(embs):
-                loss_t += tri_loss[i] * triplet_loss(item, label, epoch)
+                loss_t += tri_loss[i] * metric_loss(item, label, epoch)
 
             if data['mean_losses']:
                 loss = loss_ce / len(preds) + loss_t / len(embs)
@@ -152,9 +149,9 @@ def train_epoch(model, device, dataloader, loss_fn, triplet_loss, optimizer, dat
 
 
 
-        loss_log.set_description_str(f'train loss : {loss.data:.3f}')
-        loss_ce_log.set_description_str(f'CrossEntropy: {loss_ce.data:.3f}')
-        loss_triplet_log.set_description_str(f'Triplet : {loss_t.data:.3f}')
+        loss_log.set_description_str(f'train loss : {loss.item():.3f}')
+        loss_ce_log.set_description_str(f'CrossEntropy: {loss_ce.item():.3f}')
+        loss_triplet_log.set_description_str(f'metric_loss : {loss_t.item():.3f}')
 
         train_loss.append(loss.detach().cpu().numpy())
         ce_loss_log.append(loss_ce.detach().cpu().numpy())

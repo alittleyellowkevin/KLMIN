@@ -543,12 +543,22 @@ class SEBoT(nn.Module):
 class base_branches(nn.Module):
     def __init__(self, backbone="ibn", stride=1):
         super(base_branches, self).__init__()
-        if backbone == 'r50':
+        if backbone == 'r34':
+            model_ft = models.resnet34()
+        elif backbone == 'r50':
             model_ft = models.resnet50()
-        elif backbone == '101ibn':
-            model_ft = torch.hub.load('XingangPan/IBN-Net', 'resnet101_ibn_a', pretrained=True)# 'resnet50_ibn_a'
+        elif backbone == 'r101':
+            model_ft = models.resnet101()
+        elif backbone == '50ibn':
+            model_ft = torch.hub.load('XingangPan/IBN-Net', 'resnet50_ibn_a', pretrained=True)
         elif backbone == '34ibn':
-            model_ft = torch.hub.load('XingangPan/IBN-Net', 'resnet34_ibn_a', pretrained=True)# 'resnet50_ibn_a'
+            model_ft = torch.hub.load('XingangPan/IBN-Net', 'resnet34_ibn_a', pretrained=True)
+        elif backbone == '101ibn':
+            model_ft = torch.hub.load('XingangPan/IBN-Net', 'resnet101_ibn_a', pretrained=True)
+        elif backbone == 'se50':
+            model_ft = se_resnet50()
+        elif backbone == 'se50x4d':
+            model_ft = se_resnext50_32x4d()
         else:
             model_ft = torch.hub.load('XingangPan/IBN-Net', 'resnet50_ibn_a', pretrained=True)
             
@@ -681,7 +691,7 @@ class FinalLayer(nn.Module):
 
     
 class KLMIN_model(nn.Module):
-    def __init__(self, class_num, n_branches, losses="LBS", backbone="ce", droprate=0, linear_num=False, return_f = True, circle_softmax=False, LAI=False, n_cams=0, n_views=0):
+    def __init__(self, class_num, n_branches, losses="LBS", backbone="4B", droprate=0, linear_num=False, return_f = True, circle_softmax=False, LAI=False, n_cams=0, n_views=0):
         super(KLMIN_model, self).__init__()
         self.modelup2L3 = base_branches(backbone=backbone)
         self.modelL4 = multi_branches(n_branches=n_branches)

@@ -427,7 +427,7 @@ def senet154(num_classes, loss={'xent'}, pretrained=True, **kwargs):
     return model
 
 
-def se_resnet50(num_classes, loss={'xent'}, pretrained=True, **kwargs):
+def se_resnet50(num_classes=1000, loss={'xent'}, pretrained=True, **kwargs):
     model = SENet(SEResNetBottleneck, [3, 4, 6, 3], groups=1, reduction=16,
                   dropout_p=None, inplanes=64, input_3x3=False,
                   downsample_kernel_size=1, downsample_padding=0,
@@ -457,7 +457,7 @@ def se_resnet152(num_classes, loss={'xent'}, pretrained=True, **kwargs):
     return model
 
 
-def se_resnext50_32x4d(num_classes, loss={'xent'}, pretrained=True, **kwargs):
+def se_resnext50_32x4d(num_classes=1000, loss={'xent'}, pretrained=True, **kwargs):
     model = SENet(SEResNeXtBottleneck, [3, 4, 6, 3], groups=32, reduction=16,
                   dropout_p=None, inplanes=64, input_3x3=False,
                   downsample_kernel_size=1, downsample_padding=0,

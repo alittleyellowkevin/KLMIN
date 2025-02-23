@@ -1,43 +1,43 @@
 ##########################  DataSet  ################################
-dataset: Veri776 #Veri776
-BATCH_SIZE: 48 #48
-NUM_INSTANCES: 8 #8
+dataset: Market
+BATCH_SIZE: 32
+NUM_INSTANCES: 4
 y_length: 256
 x_length: 256
-n_mean: [0.5, 0.5, 0.5]
-n_std: [0.5, 0.5, 0.5]
+n_mean: [0.485, 0.456, 0.406]
+n_std: [0.229, 0.224, 0.225]
 p_hflip: 0.5
 p_rerase: 0.5
 
 
-n_classes: 575 #30671 #770
+n_classes: 751
 ROOT_DIR: D:\Projects\KLMIN\logs
-query_dir: D:\Projects\KLMIN\data\veri\image_query\ #/mnt/DATADISK/Datasets/vehicle/VeRi/image_query/ #
-teste_dir: D:\Projects\KLMIN\data\veri\image_test\  #/mnt/DATADISK/Datasets/vehicle/VeRi/image_test/ #
-train_dir: D:\Projects\KLMIN\data\veri\image_train\ #/mnt/DATADISK/Datasets/vehicle/VeRi/image_train/ #
+query_dir: D:\Projects\KLMIN\data\Market\query\ #/mnt/DATADISK/Datasets/vehicle/VeRi/image_query/ #
+teste_dir: D:\Projects\KLMIN\data\Market\bounding_box_test\  #/mnt/DATADISK/Datasets/vehicle/VeRi/image_test/ #
+train_dir: D:\Projects\KLMIN\data\Market\bounding_box_train\ #/mnt/DATADISK/Datasets/vehicle/VeRi/image_train/ #
 query_list_file: D:\Projects\KLMIN\data\veri\name_query.txt
 gallery_list_file: D:\Projects\KLMIN\data\veri\name_test.txt
 train_list_file: D:\Projects\KLMIN\data\veri\name_train.txt
 test_keypoint: D:\Projects\KLMIN\dataset\VeRi\keypoint_orient_test.txt
 train_keypoint: D:\Projects\KLMIN\dataset\VeRi\keypoint_orient_train.txt
-num_workers_train: 8
-num_workers_teste: 12
+num_workers_train: 4
+num_workers_teste: 6
 
 
 ##########################  Model  ################################
 model_arch: 4B
 LAI: True
-n_cams: 20
-n_views: 8
+n_cams: 8
+n_views: 6
 backbone: ibn
 
 
 ##########################  Loss  ################################
-loss_function: instance_loss
+loss_function: hard_mining
 ### Triplet Loss
 metric_loss: fastreidtriplet #Batch_hard_triplet #Batch_hard_triplet #SupCon #RLL
 triplet_norm: False
-triplet_margin: 0.5
+triplet_margin: 0.1
 tri_loss:
   - 1.0  # r50
   - 0.4  # bot

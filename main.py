@@ -1,13 +1,11 @@
-import time
 
-import torch
 import torch.nn as nn
 from torchvision import transforms
 from torch.utils.data import DataLoader
-from tqdm import tqdm
-import numpy as np
+
+import utils
 from data.triplet_sampler import *
-from loss.losses import triplet_loss_fastreid
+from loss.losses import metric_loss_function
 from lr_scheduler.sche_optim import make_optimizer, make_warmup_scheduler
 import argparse
 import torch.multiprocessing
@@ -15,15 +13,9 @@ import yaml
 import os
 from tensorboard_log import Logger
 from processor import get_model, train_epoch, test_epoch
-from fvcore.nn import FlopCountAnalysis, parameter_count_table
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
-# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-# os.environ['NCCL_P2P_DISABLE'] = '1'
-# os.environ['CUDA_VISIBLE_DEVICES']="-1"
-
-def count_parameters(model): return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 def set_seed(seed):
     torch.manual_seed(seed)
@@ -39,11 +31,9 @@ if __name__ == "__main__":
 
     ############### Config #########################
     parser.add_argument('--config', default=None, help='Config Path')
-    
     args = parser.parse_args()
 
-    ### Load hyper parameters
-
+    ########### Load hyper parameters ##################
     with open(args.config, "r") as stream:
         data = yaml.safe_load(stream)
 
@@ -91,16 +81,16 @@ if __name__ == "__main__":
     ################# Dataset ###########################
     print("loading DataSet")
     if data['dataset']== "VehicleID":
-        data_q = CustomDataSet4VehicleID(r'D:\Projects\MBR\data\VehicleID\VehicleID\train_test_split\test_list_1600.txt', data['ROOT_DIR'], is_train=False, mode="q", transform=teste_transform)
-        data_g = CustomDataSet4VehicleID(r'D:\Projects\MBR\data\VehicleID\VehicleID\train_test_split\test_list_1600.txt', data['ROOT_DIR'], is_train=False, mode="g", transform=teste_transform)
-        data_train = CustomDataSet4VehicleID(r"D:\Projects\MBR\data\VehicleID\VehicleID\train_test_split\train_list.txt", data['ROOT_DIR'], is_train=True, transform=train_transform)
+        data_q = CustomDataSet4VehicleID(r'D:\Projects\KLMIN\data\VehicleID\VehicleID\train_test_split\test_list_1600.txt', data['ROOT_DIR'], is_train=False, mode="q", transform=teste_transform)
+        data_g = CustomDataSet4VehicleID(r'D:\Projects\KLMIN\data\VehicleID\VehicleID\train_test_split\test_list_1600.txt', data['ROOT_DIR'], is_train=False, mode="g", transform=teste_transform)
+        data_train = CustomDataSet4VehicleID(r"D:\Projects\KLMIN\data\VehicleID\VehicleID\train_test_split\train_list.txt", data['ROOT_DIR'], is_train=True, transform=train_transform)
         data_train = DataLoader(data_train, sampler=RandomIdentitySampler(data_train, data['BATCH_SIZE'], data['NUM_INSTANCES']), num_workers=data['num_workers_train'], batch_size = data['BATCH_SIZE'], collate_fn=train_collate_fn, pin_memory=True)#
         data_q = DataLoader(data_q, batch_size=data['BATCH_SIZE'], shuffle=False, num_workers=data['num_workers_teste'])
         data_g = DataLoader(data_g, batch_size=data['BATCH_SIZE'], shuffle=False, num_workers=data['num_workers_teste'])
     if data['dataset']== 'VERIWILD':
-        data_q = CustomDataSet4VERIWILD(r'D:\Projects\MBR\data\VeRI-Wild\VERI-WILD\data\train_test_split\test_3000_query.txt', data['ROOT_DIR'], transform=teste_transform, with_view=False)
-        data_g = CustomDataSet4VERIWILD(r'D:\Projects\MBR\data\VeRI-Wild\VERI-WILD\data\train_test_split\test_3000.txt', data['ROOT_DIR'], transform=teste_transform, with_view=False)
-        data_train = CustomDataSet4VERIWILD(r'D:\Projects\MBR\data\VeRI-Wild\VERI-WILD\data\train_test_split\train_list.txt', data['ROOT_DIR'], transform=train_transform, with_view=False)
+        data_q = CustomDataSet4VERIWILD(r'D:\Projects\KLMIN\data\VeRI-Wild\VERI-WILD\data\train_test_split\test_3000_query.txt', data['ROOT_DIR'], transform=teste_transform, with_view=False)
+        data_g = CustomDataSet4VERIWILD(r'D:\Projects\KLMIN\data\VeRI-Wild\VERI-WILD\data\train_test_split\test_3000.txt', data['ROOT_DIR'], transform=teste_transform, with_view=False)
+        data_train = CustomDataSet4VERIWILD(r'D:\Projects\KLMIN\data\VeRI-Wild\VERI-WILD\data\train_test_split\train_list.txt', data['ROOT_DIR'], transform=train_transform, with_view=False)
         data_train = DataLoader(data_train,
                                 sampler=RandomIdentitySampler(data_train, data['BATCH_SIZE'], data['NUM_INSTANCES']),
                                 num_workers=data['num_workers_train'], batch_size=data['BATCH_SIZE'],
@@ -119,16 +109,32 @@ if __name__ == "__main__":
         data_q = DataLoader(data_q, batch_size=data['BATCH_SIZE'], shuffle=False, num_workers=data['num_workers_teste'])
         data_g = DataLoader(data_g, batch_size=data['BATCH_SIZE'], shuffle=False, num_workers=data['num_workers_teste'])
 
+    if data['dataset'] == 'Market':
+        data_q = CustomDataSet4Market1501(
+            r'D:\Projects\KLMIN\data\Market\query_list.txt', data['query_dir'],
+            transform=teste_transform)
+        data_g = CustomDataSet4Market1501(
+            r'D:\Projects\KLMIN\data\Market\gallery_list.txt',data['teste_dir'],
+            transform=teste_transform)
+        data_train = CustomDataSet4Market1501(
+            r'D:\Projects\KLMIN\data\Market\train_list.txt', data['train_dir'],
+            transform=train_transform)
+        data_train = DataLoader(data_train,
+                                sampler=RandomIdentitySampler(data_train, data['BATCH_SIZE'], data['NUM_INSTANCES']),
+                                num_workers=data['num_workers_train'], batch_size=data['BATCH_SIZE'],
+                                collate_fn=train_collate_fn, pin_memory=True)
+        data_q = DataLoader(data_q, batch_size=data['BATCH_SIZE'], shuffle=False, num_workers=data['num_workers_teste'])
+        data_g = DataLoader(data_g, batch_size=data['BATCH_SIZE'], shuffle=False, num_workers=data['num_workers_teste'])
     ##################  Model ############################
     model = get_model(data, device)
     print(model)
-    print("model_parameters:" + str(count_parameters(model)))
+    print("model_parameters:" + str(utils.count_parameters(model)))
     print("#################################################################")
 
     ### Losses ###
     loss_fn = nn.CrossEntropyLoss(label_smoothing=data['label_smoothing'])
     print("CE Loss:", data['ce_loss'])
-    metric_loss = triplet_loss_fastreid(data['triplet_margin'], norm_feat=data['triplet_norm'], mining = data['mining'])
+    metric_loss = metric_loss_function(data, data['triplet_margin'], norm_feat=data['triplet_norm'], loss_function = data['loss_function'])
     print("Triplet Loss:", data['tri_loss'])
 
     print("#################################################################")
